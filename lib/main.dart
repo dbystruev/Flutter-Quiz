@@ -1,7 +1,11 @@
-// https://www.udemy.com/course/flutter-bootcamp-with-dart/learn/lecture/14483450
+//  https://github.com/londonappbrewery/quizzler-flutter
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:quizzler/quiz.dart';
+import 'package:rflutter_alert/rflutter_alert.dart';
 import 'package:strings/strings.dart';
+
+final quiz = Quiz();
 
 void main() => runApp(
       Quizzler(),
@@ -31,22 +35,76 @@ class QuizPage extends StatefulWidget {
 }
 
 class _QuizPageState extends State<QuizPage> {
-  Expanded _trueFalseButton(bool isTrue) {
+  List<Icon> scoreKeeper = [];
+  var rightAnswers = 0, wrongAnswers = 0;
+
+  void showAlert() {
+    Alert(
+      buttons: [
+        DialogButton(
+          child: Text(
+            'Restart',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+            ),
+          ),
+          onPressed: () {
+            Navigator.pop(context);
+            setState(() {
+              scoreKeeper.clear();
+              rightAnswers = wrongAnswers = 0;
+              quiz.restart();
+            });
+          },
+          width: 120,
+        ),
+      ],
+      context: context,
+      desc: "You've got $rightAnswers answers right and $wrongAnswers wrong",
+      title: 'The quiz is finished.',
+      type: AlertType.success,
+    ).show();
+  }
+
+  Expanded trueFalseButton(bool userAnswer) {
     return Expanded(
       child: Padding(
         child: FlatButton(
           child: Text(
             capitalize(
-              isTrue.toString(),
+              userAnswer.toString(),
             ),
             style: TextStyle(
               color: Colors.white,
               fontSize: 20,
             ),
           ),
-          color: isTrue ? Colors.green : Colors.red,
+          color: userAnswer ? Colors.green : Colors.red,
           onPressed: () {
-            print('The user picked $isTrue');
+            if (!quiz.isFinished) {
+              final correctAnswer = quiz.currentAnswer;
+              Icon icon;
+              if (userAnswer == correctAnswer) {
+                rightAnswers++;
+                icon = Icon(
+                  Icons.check,
+                  color: Colors.green,
+                );
+              } else {
+                wrongAnswers++;
+                icon = Icon(
+                  Icons.close,
+                  color: Colors.red,
+                );
+              }
+              scoreKeeper.add(icon);
+              quiz.nextQuestion();
+              setState(() {});
+            }
+            if (quiz.isFinished) {
+              showAlert();
+            }
           },
           textColor: Colors.white,
         ),
@@ -63,7 +121,7 @@ class _QuizPageState extends State<QuizPage> {
           child: Padding(
             child: Center(
               child: Text(
-                'This is where the question text will go.',
+                quiz.currentQuestion,
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 25,
@@ -75,18 +133,14 @@ class _QuizPageState extends State<QuizPage> {
           ),
           flex: 5,
         ),
-        _trueFalseButton(true),
-        _trueFalseButton(false),
-        // TODO: Add a score keeper row
+        trueFalseButton(true),
+        trueFalseButton(false),
+        Row(
+          children: scoreKeeper,
+        ),
       ],
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
     );
   }
 }
-
-/*
-question1: 'You can lead a cow down stairs but not up stairs.', false,
-question2: 'Approximately one quarter of human bones are in the feet.', true,
-question3: 'A slug\'s blood is green.', true,
- */
